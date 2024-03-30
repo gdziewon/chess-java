@@ -2,7 +2,7 @@ package chess.pieces;
 
 public abstract class Piece {
     private final boolean isWhite;
-    private boolean didntMove = true;
+    private boolean hasMoved = false;
 
     public Piece(boolean isWhite) {
         this.isWhite = isWhite;
@@ -12,16 +12,19 @@ public abstract class Piece {
         return isWhite;
     }
 
-    public boolean getDidntMove() {
-        return didntMove;
+    public boolean getHasMoved() {
+        return hasMoved;
     }
 
     public void setHasMoved(boolean hasMoved) {
-        this.didntMove = hasMoved;
+        this.hasMoved = hasMoved;
     }
 
     public abstract char getSymbol();
 
+    public String getName() {
+        return this.getClass().getSimpleName();
+    }
 
     public abstract boolean checkMove(int[] start, int[] end);
 }

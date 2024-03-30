@@ -1,40 +1,45 @@
-package chess;
+package chess.game;
 
 import chess.board.Board;
-import java.util.Scanner;
+import chess.moves.Move;
 
 
 public class Game {
     private final Board board;
-    private boolean isWhiteTurn = true;
-    private final Scanner scanner = new Scanner(System.in);
+    private final Player[] players;
+    private final UserInterface ui;
 
 
     public Game() {
-        board = new Board();
+        ui = new UserInterface();
+        board = new Board(ui);
+        players = new Player[]{new Player(true, board.getField(7, 4)),
+                new Player(false, board.getField(0, 4))};
     }
 
     public void startGame() {
+        Player currentPlayer = players[0];
         while (true) {
-            board.printBoard(isWhiteTurn);
-            System.out.println(isWhiteTurn ? "White turn" : "Black turn");
+            ui.showTurn(board, currentPlayer.isWhite());
             while (true) {
-                System.out.println("Enter move:");
-                String move = scanner.nextLine();
-                if (move.equals("exit")) {
-                    return;
-                }
-                int[][] parsedMove = parseMove(move);
-                if (parsedMove == null) {
-                    System.out.println("Invalid input");
-                    continue;
-                }
-                if (board.movePiece(parsedMove[0], parsedMove[1], isWhiteTurn)) {
-                    isWhiteTurn = !isWhiteTurn;
+                if (turn(currentPlayer)) {
+                    currentPlayer = currentPlayer == players[0] ? players[1] : players[0];
                     break;
                 }
             }
         }
+    }
+
+    private boolean turn(Player player) {
+        String move = ui.getMoveInput();
+        int[][] parsedMove = parseMove(move);
+        if (parsedMove == null) {
+            ui.invalidInput();
+            return false;
+        }
+
+        Move boardMove = new Move(parsedMove[0], parsedMove[1], player);
+        return board.move(boardMove);
     }
 
     private static int[][] parseMove(String move) {

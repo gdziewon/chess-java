@@ -1,107 +1,195 @@
 package chess.board;
+import chess.game.UserInterface;
+import chess.moves.Move;
+import chess.moves.MoveValidator;
+import chess.moves.ValidationResult;
+import chess.pieces.Piece;
 import chess.utils.PieceFactory;
 import chess.utils.Pieces;
 
 public class Board {
-    private final int boardSize = 8;
-    private final Field[][] fields = new Field[boardSize][boardSize];
+    private static final int BOARD_SIZE = 8;
+    private final Field[][] fields = new Field[BOARD_SIZE][BOARD_SIZE];
+    private final MoveValidator moveValidator;
+    private final UserInterface ui;
 
-    public Board() {
-        for (int i = 0; i < boardSize; i++) {
-            for (int j = 0; j < boardSize; j++) {
-                fields[i][j] = new Field(null, (i + j) % 2 == 0);
+    private final Printer printer = new Printer();
+
+
+
+    public Board(UserInterface ui) {
+        this.ui = ui;
+
+        this.moveValidator = new MoveValidator(this);
+
+        Initializer initializer = new Initializer();
+        initializer.initializeBoard();
+    }
+
+    class Initializer {
+        public void initializeBoard() {
+            for (int i = 0; i < BOARD_SIZE; i++) {
+                for (int j = 0; j < BOARD_SIZE; j++) {
+                    fields[i][j] = new Field(null, (i + j) % 2 == 0);
+                }
+            }
+            setPiecesOnBoard();
+        }
+
+        private void setPiecesOnBoard() {
+            setupPieceRow(0, true);  // white pieces
+            setupPieceRow(7, false); // black pieces
+            setupPawnRow(1, true);   // white pawns
+            setupPawnRow(6, false);  // black pawns
+        }
+
+        private void setupPieceRow(int row, boolean isWhite) {
+            Pieces[] pieces = {Pieces.ROOK, Pieces.KNIGHT, Pieces.BISHOP,
+                    Pieces.QUEEN, Pieces.KING, Pieces.BISHOP,
+                    Pieces.KNIGHT, Pieces.ROOK};
+
+            for (int i = 0; i < BOARD_SIZE; i++) {
+                fields[row][i].setPiece(PieceFactory.createPiece(pieces[i], isWhite));
             }
         }
-        setPieces(true);
-        setPieces(false);
-    }
 
-    private void setPieces(boolean isWhite) {
-        int pawnRow = isWhite ? 1 : 6;
-        int figureRow = isWhite ? 0 : 7;
-        for (int i = 0; i < boardSize; i++) {
-            fields[pawnRow][i].setPiece(PieceFactory.createPiece(Pieces.PAWN, isWhite));
+        private void setupPawnRow(int row, boolean isWhite) {
+            for (int i = 0; i < BOARD_SIZE; i++) {
+                fields[row][i].setPiece(PieceFactory.createPiece(Pieces.PAWN, isWhite));
+            }
         }
-        fields[figureRow][0].setPiece(PieceFactory.createPiece(Pieces.ROOK, isWhite));
-        fields[figureRow][1].setPiece(PieceFactory.createPiece(Pieces.KNIGHT, isWhite));
-        fields[figureRow][2].setPiece(PieceFactory.createPiece(Pieces.BISHOP, isWhite));
-        fields[figureRow][3].setPiece(PieceFactory.createPiece(Pieces.QUEEN, isWhite));
-        fields[figureRow][4].setPiece(PieceFactory.createPiece(Pieces.KING, isWhite));
-        fields[figureRow][5].setPiece(PieceFactory.createPiece(Pieces.BISHOP, isWhite));
-        fields[figureRow][6].setPiece(PieceFactory.createPiece(Pieces.KNIGHT, isWhite));
-        fields[figureRow][7].setPiece(PieceFactory.createPiece(Pieces.ROOK, isWhite));
     }
 
-    public void printBoard(boolean isWhiteTurn) {
-        printLetterRow();
-        int start = isWhiteTurn ? boardSize - 1 : 0;
-        int end = isWhiteTurn ? -1 : boardSize;
-        int step = isWhiteTurn ? -1 : 1;
-
-        for (int i = start; isWhiteTurn ? i > end : i < end; i += step) {
+    public class Printer {
+        public void printBoard(boolean isWhiteTurn) {
+            printLetterRow();
+            if (isWhiteTurn) {
+                for (int i = BOARD_SIZE - 1; i >= 0; i--) {
+                    printFields(i);
+                }
+            } else {
+                for (int i = 0; i < BOARD_SIZE; i++) {
+                    printFields(i);
+                }
+            }
             printLine();
-            System.out.print((i + 1) + " |");
-            for (int j = 0; j < boardSize; j++) {
-                fields[i][j].printField();
+            printLetterRow();
+        }
+
+        private void printFields(int row) {
+            printLine();
+            System.out.print((row + 1) + " |");
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                fields[row][j].printField();
                 System.out.print("|");
             }
-            System.out.println(" " + (i + 1));
+            System.out.println(" " + (row + 1));
         }
-        printLine();
-        printLetterRow();
+
+        private void printLetterRow() {
+            System.out.print("  ");
+            for (int i = 0; i < BOARD_SIZE; i++) {
+                System.out.print("  " + (char)('A' + i) + " ");
+            }
+            System.out.println();
+        }
+
+        private void printLine() {
+            System.out.print("  +");
+            System.out.print("---+".repeat(BOARD_SIZE));
+            System.out.println();
+        }
     }
 
-    private void printLetterRow() {
-        System.out.print("  ");
-        for (int i = 0; i < boardSize; i++) {
-            System.out.print("  " + (char)('A' + i) + " ");
-        }
-        System.out.println();
-    }
-
-    private void printLine() {
-        System.out.print("  +");
-        System.out.print("---+".repeat(boardSize));
-        System.out.println();
+    public Printer getPrinter() {
+        return printer;
     }
 
     public Field getField(int x, int y) {
         return fields[x][y];
     }
 
-    public void setField(int x, int y, Field field) {
-        fields[x][y] = field;
+    public boolean move(Move move) {
+        Field startField = getField(move.getStart()[0], move.getStart()[1]);
+        Field endField = getField(move.getEnd()[0], move.getEnd()[1]);
+
+        move.setStartField(startField);
+        move.setEndField(endField);
+
+        ValidationResult validationResult = moveValidator.validateMove(move);
+
+        return switch (validationResult.getMoveType()) {
+            case LEGAL -> executeStandardMove(move);
+            case CASTLE -> executeCastleMove(move);
+            case ILLEGAL -> {
+                ui.invalidMove(validationResult.getMessage());
+                yield false;
+            }
+            default -> {
+                ui.invalidMove("Unknown move type.");
+                yield false;
+            }
+        };
     }
 
-    public boolean movePiece(int[] start, int[] end, boolean isWhiteTurn) {
-        Field startField = getField(start[0], start[1]);
-        Field endField = getField(end[0], end[1]);
-
-        if (!isMoveValid(startField, start, end, isWhiteTurn)) {
-            return false;
+    private boolean executeStandardMove(Move move) {
+        movePiece(move);
+        if (isPromotion(move)) {
+            promotePawn(move);
         }
-
-        endField.setPiece(startField.getPiece());
-        startField.getPiece().setHasMoved(true);
-        startField.setPiece(null);
         return true;
     }
 
-    private boolean isMoveValid(Field startField, int[] start, int[] end, boolean isWhiteTurn) {
-        if (startField.isEmpty()) {
-            System.out.println("There is no piece on the start field.");
-            return false;
+    private void movePiece(Move move) {
+        move.getEndField().setPiece(move.getStartField().getPiece());
+        move.getStartField().setPiece(null);
+        move.getEndField().getPiece().setHasMoved(true);
+    }
+
+    private boolean isPromotion(Move move) {
+        return move.getEndField().getPiece().getName().equals("Pawn") &&
+                (move.getEnd()[0] == 0 || move.getEnd()[0] == 7);
+    }
+
+    private void promotePawn(Move move) {
+        while (true) {
+            String piece = ui.getPromotionInput();
+            Piece promotedPiece = PieceFactory.promotePawn(piece, move.getPlayer().isWhite());
+            if (promotedPiece != null) {
+                move.getEndField().setPiece(promotedPiece);
+                break;
+            } else {
+                ui.invalidInput();
+            }
         }
-        if (isWhiteTurn != startField.isPieceWhite()) {
-            System.out.printf("You can only move %s pieces.%n",
-                    isWhiteTurn ? "white" : "black");
-            return false;
-        }
-        if (!startField.checkMove(start, end)) {
-            System.out.printf("Piece '%s' can't move like that.%n",
-                    startField.getPiece().getClass().getSimpleName());
-            return false;
-        }
+    }
+
+    private boolean executeCastleMove(Move move) {
+        int[] kingStartPos = move.getStart();
+        int[] rookStartPos = move.getEnd();
+
+        Field kingStartField = move.getStartField();
+        Field rookStartField = move.getEndField();
+
+        boolean isKingside = rookStartPos[1] > kingStartPos[1];
+
+        int kingEndColumn = isKingside ? kingStartPos[1] + 2 : kingStartPos[1] - 2;
+        int rookEndColumn = isKingside ? kingEndColumn - 1 : kingEndColumn + 1;
+
+        // Get the fields for the new positions
+        Field kingEndField = getField(kingStartPos[0], kingEndColumn);
+        Field rookEndField = getField(rookStartPos[0], rookEndColumn);
+
+        // Move the kin
+        kingEndField.setPiece(kingStartField.getPiece());
+        kingStartField.setPiece(null);
+        kingEndField.getPiece().setHasMoved(true);
+
+        // Move the rook
+        rookEndField.setPiece(rookStartField.getPiece());
+        rookStartField.setPiece(null);
+        rookEndField.getPiece().setHasMoved(true);
+
         return true;
     }
 }

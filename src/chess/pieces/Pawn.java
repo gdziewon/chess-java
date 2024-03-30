@@ -13,9 +13,8 @@ public class Pawn extends Piece {
         int[] distance = PieceUtils.calculateDistancePawn(start, end);
         boolean isWhite = this.getIsWhite();
 
-        // Forward movement checks
         boolean normalMove = distance[0] == 0 && (isWhite ? distance[1] == 1 : distance[1] == -1);
-        boolean initialMove = this.getDidntMove() && distance[0] == 0 && (isWhite ? distance[1] == 2 : distance[1] == -2);
+        boolean initialMove = !this.getHasMoved() && distance[0] == 0 && (isWhite ? distance[1] == 2 : distance[1] == -2);
 
         return normalMove || initialMove;
     }
