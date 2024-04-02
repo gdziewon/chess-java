@@ -1,70 +1,45 @@
 package chess.game;
 
 import chess.board.Board;
-import chess.moves.Move;
 
 
 public class Game {
-    private final Board board;
-    private final Player[] players;
     private final UserInterface ui;
+    private final GameplayManager gameplayManager;
+
+    private final Player[] players;
 
 
     public Game() {
-        ui = new UserInterface();
-        board = new Board(ui);
-        players = new Player[]{new Player(true, board.getField(7, 4)),
-                new Player(false, board.getField(0, 4))};
+        players = new Player[]{new Player(true),
+                new Player(false)};
+
+        Board board = new Board();
+        ui = new UserInterface(board);
+        gameplayManager = new GameplayManager(board, ui, players);
     }
 
     public void startGame() {
-        Player currentPlayer = players[0];
+        boolean isWhiteTurn = true;
         while (true) {
-            ui.showTurn(board, currentPlayer.isWhite());
-            while (true) {
-                if (turn(currentPlayer)) {
-                    currentPlayer = currentPlayer == players[0] ? players[1] : players[0];
-                    break;
-                }
+            ui.showTurn(isWhiteTurn);
+
+            if (players[isWhiteTurn ? 0 : 1].isInCheck()) {
+                ui.inCheck();
             }
+
+            turn(isWhiteTurn);
+
+            isWhiteTurn = !isWhiteTurn;
         }
     }
 
-    private boolean turn(Player player) {
-        String move = ui.getMoveInput();
-        int[][] parsedMove = parseMove(move);
-        if (parsedMove == null) {
-            ui.invalidInput();
-            return false;
-        }
-
-        Move boardMove = new Move(parsedMove[0], parsedMove[1], player);
-        return board.move(boardMove);
-    }
-
-    private static int[][] parseMove(String move) {
-        move = move.toUpperCase().replaceAll("\\s","");
-        if (move.length() != 4) {
-            return null;
-        }
-        int[] start = parsePosition(move.substring(0, 2));
-        int[] end = parsePosition(move.substring(2, 4));
-        if (start == null || end == null) {
-            return null;
-        }
-        return new int[][]{start, end};
-    }
-
-    private static int[] parsePosition(String position) {
-        try {
-            int x = Character.getNumericValue(position.charAt(1)) - 1;
-            int y = position.charAt(0) - 'A';
-            if (x < 0 || x > 7 || y < 0 || y > 7) {
-                return null;
+    private void turn(boolean isWhiteTurn) {
+        while (true) {
+            String move = ui.getMoveInput();
+            if (gameplayManager.move(move, isWhiteTurn)) {
+                return;
             }
-            return new int[]{x, y};
-        } catch (Exception e) {
-            return null;
         }
     }
 }

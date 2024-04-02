@@ -33,4 +33,11 @@ public class Pawn extends Piece {
     public char getSymbol() {
         return this.getIsWhite() ? 'P' : 'p';
     }
+
+    @Override
+    public Piece copyPiece() {
+        Pawn newPawn = new Pawn(this.getIsWhite());
+        newPawn.setHasMoved(this.getHasMoved());
+        return newPawn;
+    }
 }

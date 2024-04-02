@@ -1,25 +1,23 @@
 package chess.game;
 
-import chess.board.Field;
-
 public class Player {
     private final boolean isWhite;
-    private Field kingField;
+    private boolean isInCheck = false;
 
-    public Player(boolean isWhite, Field kingField) {
+    public Player(boolean isWhite) {
         this.isWhite = isWhite;
-        this.kingField = kingField;
     }
 
     public boolean isWhite() {
         return isWhite;
     }
 
-    public Field getKingField() {
-        return kingField;
+    public boolean isInCheck() {
+        return isInCheck;
     }
 
-    public void setKingField(Field kingField) {
-        this.kingField = kingField;
+    public void setInCheck(boolean inCheck) {
+        isInCheck = inCheck;
     }
+
 }

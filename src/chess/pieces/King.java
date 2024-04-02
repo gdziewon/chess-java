@@ -18,4 +18,11 @@ public class King extends Piece {
         public char getSymbol() {
             return this.getIsWhite() ? 'K' : 'k';
         }
+
+        @Override
+        public Piece copyPiece() {
+            King newKing = new King(this.getIsWhite());
+            newKing.setHasMoved(this.getHasMoved());
+            return newKing;
+        }
 }

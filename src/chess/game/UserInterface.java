@@ -6,8 +6,14 @@ import java.util.Scanner;
 
 public class UserInterface {
     private final Scanner scanner = new Scanner(System.in);
+    private final Board board;
 
-    public void showTurn(Board board, boolean isWhiteTurn) {
+
+    public UserInterface(Board board) {
+        this.board = board;
+    }
+
+    public void showTurn(boolean isWhiteTurn) {
         board.getPrinter().printBoard(isWhiteTurn);
         System.out.println((isWhiteTurn ? "White" : "Black") + "'s turn");
     }
@@ -26,7 +32,11 @@ public class UserInterface {
         return scanner.nextLine();
     }
 
-    public void invalidMove(String message) {
+    public void inCheck() {
+        System.out.println("You are in check!");
+    }
+
+    public void illegalMove(String message) {
         System.out.println("Invalid move: " + message);
     }
 

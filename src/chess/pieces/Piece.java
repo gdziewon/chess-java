@@ -27,4 +27,6 @@ public abstract class Piece {
     }
 
     public abstract boolean checkMove(int[] start, int[] end);
+
+    public abstract Piece copyPiece();
 }

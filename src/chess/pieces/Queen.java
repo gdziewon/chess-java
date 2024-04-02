@@ -18,4 +18,9 @@ public class Queen extends Piece {
         public char getSymbol() {
             return this.getIsWhite() ? 'Q' : 'q';
         }
+
+        @Override
+        public Piece copyPiece() {
+            return new Queen(this.getIsWhite());
+        }
 }

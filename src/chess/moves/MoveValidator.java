@@ -2,6 +2,8 @@ package chess.moves;
 
 import chess.board.Board;
 import chess.board.Field;
+import chess.pieces.Pawn;
+import chess.pieces.Piece;
 
 public class MoveValidator {
     private final Board board;
@@ -11,86 +13,42 @@ public class MoveValidator {
     }
 
     public ValidationResult validateMove(Move move) {
-        ValidationResult result = basicMoveValidation(move);
-        if (result.getMoveType() == MoveType.ILLEGAL) {
-            return result;
+        if (!basicMoveValidation(move)) {
+            return new ValidationResult(MoveType.ILLEGAL, "Field is empty or piece is not yours.");
         }
 
-        // castle move
-        result = isCastle(move);
-        if (result.getMoveType() == MoveType.CASTLE) {
-            return result;
+        if (isCastle(move)) {
+            return isValidCastleMove(move);
         }
 
-        // pawn attack
-        result = isPawnAttack(move);
-        if (result.getMoveType() == MoveType.LEGAL) {
-            return new ValidationResult(MoveType.LEGAL, "Pawn attack is legal.");
+        if (isPawnAttack(move)) {
+            return isValidPawnAttack(move);
         }
 
-        // normal move
-        result = isMoveLegal(move);
-        return result;
+        return isMoveLegal(move);
     }
 
-    private ValidationResult basicMoveValidation(Move move) {
+    private boolean basicMoveValidation(Move move) {
         Field startField = move.getStartField();
         if (startField.isEmpty()) {
-            return new ValidationResult(MoveType.ILLEGAL, "Start field is empty.");
+            return false;
         }
-        if (startField.getPiece().getIsWhite() != move.getPlayer().isWhite()) {
-            return new ValidationResult(MoveType.ILLEGAL, "Cannot move the opponent's piece.");
-        }
-        return new ValidationResult(MoveType.LEGAL, "");
-    }
-
-    private ValidationResult isCastle(Move move) {
-        if (move.getStartField().getPiece().getName().equals("King") &&
-                !move.getStartField().getPiece().getHasMoved() &&
-                isRookEligibleForCastle(move) &&
-                isPathClear(move.getStart(), move.getEnd())){
-            return new ValidationResult(MoveType.CASTLE, "Castling is legal.");
-        }
-        return new ValidationResult(MoveType.ILLEGAL, "Invalid castling move.");
-    }
-
-    private boolean isRookEligibleForCastle(Move move) {
-        Field endField = move.getEndField();
-        return endField.getPiece() != null &&
-                endField.getPiece().getName().equals("Rook") &&
-                endField.getPiece().getIsWhite() == move.getStartField().getPiece().getIsWhite() &&
-                !endField.getPiece().getHasMoved();
+        return startField.getPiece().getIsWhite() == move.getIsWhite();
     }
 
     private ValidationResult isMoveLegal(Move move) {
+        if (!move.getEndField().isEmpty() &&
+                move.getEndField().getPiece().getIsWhite() == move.getIsWhite()) {
+            return new ValidationResult(MoveType.ILLEGAL, "Cannot capture own piece.");
+        }
         if (!move.getStartField().checkMove(move.getStart(), move.getEnd())) {
             return new ValidationResult(MoveType.ILLEGAL, "Piece " + move.getStartField().getPiece().getName() + " cannot move like that.");
         }
-        if (!isPathClear(move.getStart(), move.getEnd()) && !move.getStartField().getPiece().getName().equals("Knight")) {
+        if (!isPathClear(move.getStart(), move.getEnd()) &&
+                !move.getStartField().getPiece().getName().equals("Knight")) {
             return new ValidationResult(MoveType.ILLEGAL, "Path is not clear.");
         }
         return new ValidationResult(MoveType.LEGAL, "Move is legal.");
-    }
-
-    private ValidationResult isPawnAttack(Move move) {
-        if (move.getStartField().getPiece().getName().equals("Pawn")) {
-            if (isPawnAttackValid(move)) {
-                return new ValidationResult(MoveType.LEGAL, "Pawn attack is legal.");
-            }
-            return new ValidationResult(MoveType.ILLEGAL, "Pawn attack is not legal.");
-        }
-        return new ValidationResult(MoveType.ILLEGAL, "Not a pawn move.");
-    }
-
-    private boolean isPawnAttackValid(Move move) {
-        int[] start = move.getStart();
-        int[] end = move.getEnd();
-        boolean isEnemy = move.getEndField().getPiece() != null &&
-                move.getEndField().getPiece().getIsWhite() != move.getStartField().getPiece().getIsWhite();
-        int deltaX = Math.abs(start[1] - end[1]);
-        int deltaY = Math.abs(start[0] - end[0]);
-
-        return isEnemy && deltaX == 1 && deltaY == 1;
     }
 
     private boolean isPathClear(int[] start, int[] end) {
@@ -110,5 +68,48 @@ public class MoveValidator {
 
         return true;
     }
+
+
+    private boolean isCastle(Move move) {
+        Piece startPiece = move.getStartField().getPiece();
+        Piece endPiece = move.getEndField().getPiece();
+
+        if (endPiece == null) {
+            return false;
+        }
+
+        return startPiece.getName().equals("King") && endPiece.getName().equals("Rook") &&
+                endPiece.getIsWhite() == move.getIsWhite();
+    }
+
+    private ValidationResult isValidCastleMove(Move move) {
+        if (move.getStartField().getPiece().getHasMoved()) {
+            return new ValidationResult(MoveType.ILLEGAL, "King has moved.");
+        }
+        if (move.getEndField().getPiece().getHasMoved()) {
+            return new ValidationResult(MoveType.ILLEGAL, "Rook has moved.");
+        }
+        if (!isPathClear(move.getStart(), move.getEnd())) {
+            return new ValidationResult(MoveType.ILLEGAL, "Path is not clear.");
+        }
+        return new ValidationResult(MoveType.CASTLE, "Castling is legal.");
+    }
+
+    private boolean isPawnAttack(Move move) {
+        return move.getStartField().getPiece().getName().equals("Pawn") &&
+                move.getEndField().getPiece() != null &&
+                move.getEndField().getPiece().getIsWhite() != move.getStartField().getPiece().getIsWhite();
+    }
+
+    private ValidationResult isValidPawnAttack(Move move) {
+        int[] start = move.getStart();
+        int[] end = move.getEnd();
+        Pawn pawn = (Pawn) move.getStartField().getPiece();
+        if (!pawn.checkAttack(start, end)) {
+            return new ValidationResult(MoveType.ILLEGAL, "Pawn cannot attack like that.");
+        }
+        return new ValidationResult(MoveType.LEGAL, "Pawn attack is legal.");
+    }
+
 }
 

@@ -18,4 +18,9 @@ public class Bishop extends Piece {
     public char getSymbol() {
         return this.getIsWhite() ? 'B' : 'b';
     }
+
+    @Override
+    public Piece copyPiece() {
+        return new Bishop(this.getIsWhite());
+    }
 }
