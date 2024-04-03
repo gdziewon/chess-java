@@ -7,16 +7,11 @@ public class Game {
     private final UserInterface ui;
     private final GameplayManager gameplayManager;
 
-    private final Player[] players;
-
 
     public Game() {
-        players = new Player[]{new Player(true),
-                new Player(false)};
-
         Board board = new Board();
         ui = new UserInterface(board);
-        gameplayManager = new GameplayManager(board, ui, players);
+        gameplayManager = new GameplayManager(board, ui);
     }
 
     public void startGame() {
@@ -24,8 +19,14 @@ public class Game {
         while (true) {
             ui.showTurn(isWhiteTurn);
 
-            if (players[isWhiteTurn ? 0 : 1].isInCheck()) {
-                ui.inCheck();
+
+            if (gameplayManager.getCurrentPlayer(isWhiteTurn).isInCheck()) {
+                if (gameplayManager.isInCheckmate(isWhiteTurn)) {
+                    ui.showCheckmate(isWhiteTurn);
+                    return;
+                } else {
+                    ui.inCheck();
+                }
             }
 
             turn(isWhiteTurn);

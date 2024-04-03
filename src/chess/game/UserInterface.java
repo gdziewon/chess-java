@@ -1,6 +1,7 @@
 package chess.game;
 
 import chess.board.Board;
+import chess.moves.Move;
 
 import java.util.Scanner;
 
@@ -40,11 +41,18 @@ public class UserInterface {
         System.out.println("Invalid move: " + message);
     }
 
-    public void showMessage(String message) {
-        System.out.println(message);
+    public void showCheckmate(boolean isWhite) {
+        System.out.println((isWhite ? "Black" : "White") + " wins by checkmate!");
     }
 
-    public void showErrorMessage(String message) {
-        System.err.println("Error: " + message);
+    public void castleThroughCheck() {
+        System.out.println("You cannot castle through check.");
+    }
+
+    public void moveRejected(Move move) {
+        System.out.println("Move rejected: " + move.getValidationResult().message());
+    }
+    public void moveIntoCheck() {
+        System.out.println("You cannot move into check.");
     }
 }

@@ -9,14 +9,13 @@ public class Move {
     private final Field endField;
     private final boolean isWhite;
 
-    private  MoveType moveType;
+    private ValidationResult validationResult;
 
 
     public Move(int[] start, int[] end, Field startField, Field endField, boolean isWhite) {
         this.start = start;
         this.end = end;
         this.isWhite = isWhite;
-        this.moveType = MoveType.LEGAL;
         this.startField = startField;
         this.endField = endField;
     }
@@ -41,11 +40,11 @@ public class Move {
         return endField;
     }
 
-    public MoveType getMoveType() {
-        return moveType;
+    public ValidationResult getValidationResult() {
+        return validationResult;
     }
 
-    public void setMoveType(MoveType moveType) {
-        this.moveType = moveType;
+    public void setValidationResult(ValidationResult validationResult) {
+        this.validationResult = validationResult;
     }
 }

@@ -1,27 +1,27 @@
 package chess.board;
+
 import chess.moves.Move;
 import chess.moves.MoveType;
-import chess.moves.MoveValidator;
-import chess.moves.ValidationResult;
 import chess.pieces.Piece;
+import chess.utils.BoardUtils;
 import chess.utils.PieceFactory;
 import chess.utils.Pieces;
+import static chess.utils.Constants.BOARD_SIZE;
 
 public class Board {
-    public static final int BOARD_SIZE = 8;
     private final Field[][] fields = new Field[BOARD_SIZE][BOARD_SIZE];
-    private final MoveValidator moveValidator;
 
     private final Printer printer = new Printer();
 
+    private final Executor executor = new Executor();
+
     private Piece capturedPiece;
     private Piece movedPiece;
+    private int[] capturedPawnPosition;
 
 
 
     public Board() {
-        moveValidator = new MoveValidator(this);
-
         Initializer initializer = new Initializer();
         initializer.initializeBoard();
     }
@@ -102,107 +102,93 @@ public class Board {
         }
     }
 
+    public class Executor {
+        public void executeMove(Move move) {
+            movedPiece = move.getStartField().getPiece().copyPiece();
+            capturedPiece = move.getEndField().getPiece() != null ? move.getEndField().getPiece().copyPiece() : null;
+
+            switch (move.getValidationResult().moveType()) {
+                case STANDARD -> movePiece(move);
+                case EN_PASSANT -> executeEnPassant(move);
+                case CASTLE -> executeCastleMove(move);
+            }
+        }
+
+        public void undoMove(Move move) {
+            if (move.getValidationResult().moveType() == MoveType.EN_PASSANT) {
+                getField(capturedPawnPosition).setPiece(capturedPiece);
+            } else {
+                move.getEndField().setPiece(capturedPiece);
+            }
+
+            move.getStartField().setPiece(movedPiece);
+
+            capturedPiece = null;
+            movedPiece = null;
+        }
+
+
+        public void movePiece(Move move) {
+            move.getEndField().setPiece(move.getStartField().getPiece());
+            move.getStartField().setPiece(null);
+            move.getEndField().getPiece().setHasMoved(true);
+
+        }
+
+        public void promotePawn(String piece, Move move) {
+            Piece promotedPiece = PieceFactory.promotePawn(piece, move.getIsWhite());
+            move.getEndField().setPiece(promotedPiece);
+        }
+
+        public void executeEnPassant(Move move) {
+            movePiece(move);
+
+            capturedPawnPosition = new int[]{move.getStart()[0], move.getEnd()[1]};
+            capturedPiece = getField(capturedPawnPosition).getPiece().copyPiece();
+            getField(capturedPawnPosition).setPiece(null);
+        }
+
+
+        public void executeCastleMove(Move move) {
+            int[] kingStartPos = move.getStart();
+            int[] rookStartPos = move.getEnd();
+
+            Field kingStartField = move.getStartField();
+            Field rookStartField = move.getEndField();
+
+            boolean isKingside = BoardUtils.isKingsideCastle(rookStartPos, kingStartPos);
+
+            int kingEndColumn = BoardUtils.calculateKingEndColumn(kingStartPos, isKingside);
+            int rookEndColumn = BoardUtils.calculateRookEndColumn(kingEndColumn, isKingside);
+
+            int[] kingEndPos = {kingStartPos[0], kingEndColumn};
+            int[] rookEndPos = {rookStartPos[0], rookEndColumn};
+
+            Field kingEndField = getField(kingEndPos);
+            Field rookEndField = getField(rookEndPos);
+
+            Move kingMove = new Move(kingStartPos, kingEndPos, kingStartField, kingEndField, move.getIsWhite());
+            Move rookMove = new Move(rookStartPos, rookEndPos, rookStartField, rookEndField, move.getIsWhite());
+
+            movePiece(kingMove);
+            movePiece(rookMove);
+        }
+    }
+
     public Printer getPrinter() {
         return printer;
     }
 
-    public MoveValidator getMoveValidator() {
-        return moveValidator;
+    public Executor getExecutor() {
+        return executor;
     }
 
     public Field getField(int x, int y) {
-        if (fields[x][y] == null) {
-            throw new IllegalArgumentException("Field does not exist.");
-        }
         return fields[x][y] ;
     }
 
     public Field getField(int[] position) {
         return fields[position[0]][position[1]];
-    }
-
-    public ValidationResult move(Move move) {
-
-        ValidationResult validationResult = moveValidator.validateMove(move);
-        if (validationResult.moveType() == MoveType.ILLEGAL) {
-            return validationResult;
-        }
-
-        move.setMoveType(validationResult.moveType());
-
-        executeMove(move);
-
-        return validationResult;
-    }
-
-    public void executeMove(Move move) {
-        movedPiece = move.getStartField().getPiece().copyPiece();
-        capturedPiece = move.getEndField().getPiece() != null ? move.getEndField().getPiece().copyPiece() : null;
-
-        switch (move.getMoveType()) {
-            case LEGAL -> {
-                executeStandardMove(move);
-                if (isPromotion(move)) {
-                    move.setMoveType(MoveType.PROMOTION);
-                }
-            }
-            case CASTLE -> executeCastleMove(move);
-            default -> throw new IllegalStateException("Unexpected value: " + move.getMoveType());
-        }
-    }
-
-    public void undoMove(Move move) {
-        move.getStartField().setPiece(movedPiece);
-        move.getEndField().setPiece(capturedPiece);
-
-        capturedPiece = null;
-        movedPiece = null;
-    }
-
-
-    private void executeStandardMove(Move move) {
-        move.getEndField().setPiece(move.getStartField().getPiece());
-        move.getStartField().setPiece(null);
-        move.getEndField().getPiece().setHasMoved(true);
-    }
-
-    private boolean isPromotion(Move move) {
-        return move.getEndField().getPiece().getName().equals("Pawn") &&
-                (move.getEnd()[0] == 0 || move.getEnd()[0] == 7);
-    }
-
-    public void promotePawn(String piece, Move move) {
-        Piece promotedPiece = PieceFactory.promotePawn(piece, move.getIsWhite());
-        move.getEndField().setPiece(promotedPiece);
-    }
-
-
-
-    private void executeCastleMove(Move move) {
-        int[] kingStartPos = move.getStart();
-        int[] rookStartPos = move.getEnd();
-
-        Field kingStartField = move.getStartField();
-        Field rookStartField = move.getEndField();
-
-        boolean isKingside = rookStartPos[1] > kingStartPos[1];
-
-        int kingEndColumn = isKingside ? kingStartPos[1] + 2 : kingStartPos[1] - 2;
-        int rookEndColumn = isKingside ? kingEndColumn - 1 : kingEndColumn + 1;
-
-        // get fields for the new positions
-        Field kingEndField = getField(kingStartPos[0], kingEndColumn);
-        Field rookEndField = getField(rookStartPos[0], rookEndColumn);
-
-        // move the king
-        kingEndField.setPiece(kingStartField.getPiece());
-        kingStartField.setPiece(null);
-        kingEndField.getPiece().setHasMoved(true);
-
-        // move the rook
-        rookEndField.setPiece(rookStartField.getPiece());
-        rookStartField.setPiece(null);
-        rookEndField.getPiece().setHasMoved(true);
     }
 }
 

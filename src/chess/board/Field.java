@@ -38,11 +38,4 @@ public class Field {
     public boolean checkMove(int[] start, int[] end) {
         return piece.checkMove(start, end);
     }
-
-    public boolean isPieceWhite() {
-        if (isEmpty()) {
-            throw new IllegalStateException("Field is empty, cannot check color of piece.");
-        }
-        return piece.getIsWhite();
-    }
 }

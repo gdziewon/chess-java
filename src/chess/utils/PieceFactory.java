@@ -19,7 +19,11 @@ public class PieceFactory {
             return switch (piece.toUpperCase()) {
                 case "N" -> new Knight(isWhite);
                 case "B" -> new Bishop(isWhite);
-                case "R" -> new Rook(isWhite);
+                case "R" -> {
+                    Rook rook = new Rook(isWhite);
+                    rook.setHasMoved(true);
+                    yield rook;
+                }
                 case "Q" -> new Queen(isWhite);
                 default -> null;
             };
@@ -27,7 +31,11 @@ public class PieceFactory {
         return switch (piece.toUpperCase()) {
             case "KNIGHT" -> new Knight(isWhite);
             case "BISHOP" -> new Bishop(isWhite);
-            case "ROOK" -> new Rook(isWhite);
+            case "ROOK" -> {
+                Rook rook = new Rook(isWhite);
+                rook.setHasMoved(true);
+                yield rook;
+            }
             case "QUEEN" -> new Queen(isWhite);
             default -> null;
         };
