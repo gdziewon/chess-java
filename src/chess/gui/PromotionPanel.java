@@ -1,4 +1,7 @@
-package chess;
+package chess.gui;
+
+import chess.game.Piece;
+import chess.game.Pieces;
 
 import javax.swing.*;
 import java.awt.*;

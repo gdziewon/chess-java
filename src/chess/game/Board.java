@@ -1,30 +1,31 @@
-package chess;
+package chess.game;
+
+import chess.gui.GameFinishedPanel;
+import chess.gui.Input;
+import chess.gui.SoundEffects;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Board extends JPanel {
     public static final String startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     public static final int fieldSize = 85;
-
     public static final int files = 8;
     public static final int ranks = 8;
 
-    static ArrayList<Piece> pieceList;
+    static CopyOnWriteArrayList<Piece> pieceList;
+    Input input = new Input(this);
 
     public Piece selectedPiece;
-
-    static int colorToMove = Pieces.White;
-
-    Input input = new Input(this);
+    public static int colorToMove = Pieces.White;
 
     public Board(String fen) {
         this.setPreferredSize(new Dimension(ranks * fieldSize, files * fieldSize));
         this.addMouseListener(input);
         this.addMouseMotionListener(input);
-        pieceList = new ArrayList<>();
+        pieceList = new CopyOnWriteArrayList<>();
         loadFromFen(fen);
     }
 
@@ -74,6 +75,7 @@ public class Board extends JPanel {
             handleCastle(move);
         } else {
             move.piece.setPos(move.targetFile, move.targetRank);
+            SoundEffects.playMove(move.piece.getColor());
             capture(move);
             move.piece.checkPromotion(owner);
         }
@@ -85,12 +87,15 @@ public class Board extends JPanel {
     public static void checkGameStatus() {
         boolean isInCheck = CheckHandler.isKingChecked(colorToMove);
         boolean hasValidMoves = CheckHandler.hasLegalMoves(colorToMove);
+
         if (!hasValidMoves) {
             if (isInCheck) {
-                GameFinishedPanel.displayEndGame("Checkmate. " + (colorToMove == Pieces.White ? "Black wins!" : "White wins!"));
+                GameFinishedPanel.displayCheckmate(colorToMove);
             } else {
-                GameFinishedPanel.displayEndGame("Stalemate. It's a draw!");
+                GameFinishedPanel.displayStalemate();
             }
+        } else if (isInCheck) {
+            SoundEffects.playCheck();
         }
     }
 
@@ -114,6 +119,7 @@ public class Board extends JPanel {
         if (rook != null) {
             rook.setPos(rookEndFile, move.startRank);
         }
+        SoundEffects.playCastle();
     }
 
     public static void capture(Move move) {
@@ -121,8 +127,10 @@ public class Board extends JPanel {
             // en passant capture
             int pawnRank = move.startRank;
             pieceList.remove(getPiece(move.targetFile, pawnRank));
+            SoundEffects.playCapture();
         } else if (move.capture != null) {
             pieceList.remove(move.capture);
+            SoundEffects.playCapture();
         }
     }
 
@@ -172,6 +180,7 @@ public class Board extends JPanel {
         if (CheckHandler.isKingChecked(colorToMove)) {
             Piece king = findKing(colorToMove);
             view.setColor(new Color(255, 0, 0, 255));
+            assert king != null;
             view.fillRect(king.file * fieldSize, king.rank * fieldSize, fieldSize, fieldSize);
         }
 

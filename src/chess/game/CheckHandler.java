@@ -1,4 +1,4 @@
-package chess;
+package chess.game;
 
 public class CheckHandler {
 
@@ -43,13 +43,9 @@ public class CheckHandler {
         int originalFile = originalPiece.file;
         int originalRank = originalPiece.rank;
 
-        movePieceSim(move);
-
-        // check if the move leaves the king in check
-        boolean isSafe = !CheckHandler.isKingChecked(Board.colorToMove);
-
-        // undo
-        undoMove(originalPiece, capturedPiece, originalFile, originalRank);
+        movePieceSim(move); // simulate the move
+        boolean isSafe = !CheckHandler.isKingChecked(Board.colorToMove); // check if the move leaves the king in check
+        undoMove(originalPiece, capturedPiece, originalFile, originalRank); // undo
 
         return isSafe;
     }
@@ -67,5 +63,4 @@ public class CheckHandler {
             Board.pieceList.add(capturedPiece);
         }
     }
-
 }

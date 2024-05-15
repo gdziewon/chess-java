@@ -1,4 +1,6 @@
-package chess;
+package chess.game;
+
+import chess.gui.PromotionPanel;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -18,8 +20,8 @@ public class Piece {
     public boolean justMadeDoubleStep = false;
     public boolean hasMoved = false;
 
-    static BufferedImage sheet;
-    static int sheetScale;
+    public static BufferedImage sheet;
+    public static int sheetScale;
     Image sprite;
     static {
         try {

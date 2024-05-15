@@ -1,4 +1,8 @@
-package chess;
+package chess.gui;
+
+import chess.game.Board;
+import chess.game.Move;
+import chess.game.Piece;
 
 import javax.swing.*;
 import java.awt.event.MouseAdapter;

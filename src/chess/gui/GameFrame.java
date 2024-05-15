@@ -1,4 +1,6 @@
-package chess;
+package chess.gui;
+
+import chess.game.Board;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,5 +18,6 @@ public class GameFrame extends JFrame {
 
         add(board);
         setVisible(true);
+        SoundEffects.playStart();
     }
 }

@@ -1,4 +1,6 @@
-package chess;
+package chess.gui;
+
+import chess.game.Pieces;
 
 import javax.swing.*;
 import java.awt.*;
@@ -33,5 +35,15 @@ public class GameFinishedPanel extends JPanel {
         endGameFrame.setLocationRelativeTo(null);
         endGameFrame.add(new GameFinishedPanel(endGameFrame, result));
         endGameFrame.setVisible(true);
+    }
+
+    public static void displayCheckmate(int color) {
+        SoundEffects.playCheckmate();
+        displayEndGame(color == Pieces.White ? "Checkmate! Black wins!" : "Checkmate! White wins!");
+    }
+
+    public static void displayStalemate() {
+        SoundEffects.playStalemate();
+        displayEndGame("Stalemate! It's a draw!");
     }
 }

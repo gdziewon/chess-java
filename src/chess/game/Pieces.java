@@ -1,6 +1,6 @@
-package chess;
+package chess.game;
 
-class Pieces {
+public class Pieces {
     public static final int None = 0;
     public static final int Pawn = 6;
     public static final int Knight = 4;
