@@ -21,7 +21,7 @@ public class GameFinishedPanel extends JPanel {
             SwingUtilities.invokeLater(GameFrame::new); // start a new game
         });
 
-        quitButton.addActionListener(e -> System.exit(0));
+        quitButton.addActionListener(e -> System.exit(0)); // exit the game
 
         buttonPanel.add(rematchButton);
         buttonPanel.add(quitButton);

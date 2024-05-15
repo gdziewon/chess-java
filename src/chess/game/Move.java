@@ -22,10 +22,6 @@ public class Move {
         this.piece = piece;
         this.capture = Board.getPiece(targetFile, targetRank);
 
-        this.isCastling = determineIfCastling();
-    }
-
-    private boolean determineIfCastling() {
-        return piece.isType(Pieces.King) && Math.abs(targetFile - startFile) == 2 && startRank == targetRank;
+        this.isCastling = piece.isType(Pieces.King) && Math.abs(targetFile - startFile) == 2 && startRank == targetRank;
     }
 }

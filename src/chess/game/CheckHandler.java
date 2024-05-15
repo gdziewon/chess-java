@@ -44,7 +44,7 @@ public class CheckHandler {
         int originalRank = originalPiece.rank;
 
         movePieceSim(move); // simulate the move
-        boolean isSafe = !CheckHandler.isKingChecked(Board.colorToMove); // check if the move leaves the king in check
+        boolean isSafe = !CheckHandler.isKingChecked(Board.colorToMove); // check if king in check
         undoMove(originalPiece, capturedPiece, originalFile, originalRank); // undo
 
         return isSafe;
