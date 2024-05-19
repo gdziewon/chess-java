@@ -83,9 +83,9 @@ public class Piece {
         return value & 0b11000;
     }
 
-    public boolean isValidMove(int targetFile, int targetRank) {
+    public boolean isValidMove(int targetFile, int targetRank, Move move) {
         return switch (this.getType()) {
-            case Pieces.Pawn -> isValidPawnMove(targetFile, targetRank);
+            case Pieces.Pawn -> isValidPawnMove(targetFile, targetRank, move);
             case Pieces.Knight -> isValidKnightMove(targetFile, targetRank);
             case Pieces.Bishop, Pieces.Rook, Pieces.Queen -> isValidSlidingMove(targetFile, targetRank);
             case Pieces.King -> isValidKingMove(targetFile, targetRank);
@@ -93,7 +93,7 @@ public class Piece {
         };
     }
 
-    public boolean isValidPawnMove(int targetFile, int targetRank) {
+    public boolean isValidPawnMove(int targetFile, int targetRank, Move move) {
         int direction = this.isColor(Pieces.White) ? -1 : 1;
         int fileDifference = targetFile - this.file;
         int rankDifference = targetRank - this.rank;
@@ -103,8 +103,12 @@ public class Piece {
         if (Math.abs(targetFile - this.file) == 1 && targetRank - this.rank == direction) {
             Piece potentialEnPassantPawn = Board.getPiece(targetFile, this.rank);
             if (potentialEnPassantPawn != null && potentialEnPassantPawn.isType(Pieces.Pawn) &&
-                    potentialEnPassantPawn.justMadeDoubleStep && potentialEnPassantPawn.isColor(Pieces.White) != this.isColor(Pieces.White))
+                    potentialEnPassantPawn.justMadeDoubleStep && potentialEnPassantPawn.isColor(Pieces.White) != this.isColor(Pieces.White)) {
+                if (move != null)
+                    move.isEnPassant = true;
                 return true;
+            }
+
         }
 
         // single step forward
@@ -173,7 +177,7 @@ public class Piece {
                 return false;
 
         for (int f = this.file; f != targetFile + direction; f += direction) // check that the king is not going through check
-            if (CheckHandler.isSquareAttacked(f, this.rank, this.getColor()))
+            if (GameStateHandler.isSquareAttacked(f, this.rank, this.getColor()))
                 return false;
 
         return true;
@@ -188,5 +192,9 @@ public class Piece {
                 this.sprite = Piece.sheet.getSubimage(((newPieceType - 1) & 0b111) * Piece.sheetScale, (newPieceType >> 4) == 0 ? 0 : Piece.sheetScale, Piece.sheetScale, Piece.sheetScale).getScaledInstance(Board.FIELD_SIZE, Board.FIELD_SIZE, BufferedImage.SCALE_SMOOTH);
             }
         }
+    }
+
+    public boolean isOnLightSquare() {
+        return (file + rank) % 2 == 0;
     }
 }

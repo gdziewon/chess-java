@@ -1,6 +1,5 @@
 package chess.game;
 
-import chess.gui.GameFinishedPanel;
 import chess.gui.Input;
 import chess.gui.SoundEffects;
 
@@ -35,6 +34,7 @@ public class Board extends JPanel {
         pieceList = new CopyOnWriteArrayList<>();
         kings = new Piece[2];
         loadFromFen(fen);
+        GameStateHandler.checkGameStatus();
     }
 
     public static void loadFromFen(String fen) {
@@ -72,15 +72,14 @@ public class Board extends JPanel {
     }
 
     public static void makeMove(Move move, JFrame owner) {
-        updateDoubleStepFlag(move);
-
         if (move.isCastling)
             handleCastle(move);
         else
             handleMove(move, owner);
 
         colorToMove = colorToMove == Pieces.White ? Pieces.Black : Pieces.White;
-        checkGameStatus();
+        GameStateHandler.updateDoubleStepFlag(move);
+        GameStateHandler.checkGameStatus();
     }
 
     public static void handleMove(Move move, JFrame owner) {
@@ -111,29 +110,9 @@ public class Board extends JPanel {
         }
     }
 
-    public static void checkGameStatus() {
-        boolean isInCheck = CheckHandler.isKingChecked(colorToMove);
-        boolean hasValidMoves = CheckHandler.hasLegalMoves(colorToMove);
-        if (!hasValidMoves) {
-            if (isInCheck) // checkmate
-                GameFinishedPanel.displayCheckmate(colorToMove);
-            else // stalemate
-                GameFinishedPanel.displayStalemate();
-        } else if (isInCheck) // check
-            SoundEffects.playSound(SoundEffects.CHECK);
-    }
-
-    public static void updateDoubleStepFlag(Move move) {
-        for (Piece piece : pieceList)
-            if (piece != move.piece)
-                piece.justMadeDoubleStep = false;
-
-        move.piece.justMadeDoubleStep = Math.abs(move.targetRank - move.startRank) == 2 && move.piece.isType(Pieces.Pawn);
-    }
-
     public static boolean isValid(Move move) {
-        if (!move.piece.isColor(move.capture) && move.piece.isValidMove(move.targetFile, move.targetRank))
-            return CheckHandler.simulateAndCheck(move); // simulate the move and check if the king will be in check
+        if (!move.piece.isColor(move.capture) && move.piece.isValidMove(move.targetFile, move.targetRank, move))
+            return GameStateHandler.simulateAndCheck(move); // simulate the move and check if the king will be in check
         return false;
     }
 
@@ -163,11 +142,11 @@ public class Board extends JPanel {
                 for (int f = 0; f < FILES; f++) {
                     Move move = new Move(selectedPiece, f, r);
                     if (isValid(move))
-                        paintSquare(view, f, r, move.capture != null ? capture : highlight);
+                        paintSquare(view, f, r, move.capture != null || move.isEnPassant ? capture : highlight);
                 }
 
         // check
-        if (CheckHandler.isKingChecked(colorToMove)) {
+        if (GameStateHandler.isKingChecked(colorToMove)) {
             Piece king = Board.kings[colorToMove == Pieces.White ? 0 : 1];
             assert king != null;
             paintSquare(view, king.file, king.rank, check);

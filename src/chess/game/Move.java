@@ -10,6 +10,7 @@ public class Move {
     Piece capture;
 
     boolean isCastling;
+    boolean isEnPassant = false;
 
     public Move(Piece piece, int targetFile, int targetRank) {
         this.startFile = piece.file;
