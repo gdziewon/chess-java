@@ -1,7 +1,6 @@
 package chess.game;
 
 public class Move {
-
     int startFile;
     int startRank;
     int targetFile;

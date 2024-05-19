@@ -38,12 +38,12 @@ public class GameFinishedPanel extends JPanel {
     }
 
     public static void displayCheckmate(int color) {
-        SoundEffects.playCheckmate();
+        SoundEffects.playSound(SoundEffects.CHECKMATE);
         displayEndGame(color == Pieces.White ? "Checkmate! Black wins!" : "Checkmate! White wins!");
     }
 
     public static void displayStalemate() {
-        SoundEffects.playStalemate();
+        SoundEffects.playSound(SoundEffects.STALEMATE);
         displayEndGame("Stalemate! It's a draw!");
     }
 }

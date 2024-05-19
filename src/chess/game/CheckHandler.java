@@ -3,37 +3,29 @@ package chess.game;
 public class CheckHandler {
 
     public static boolean isKingChecked(int color) {
-        Piece king = Board.findKing(color);
+        Piece king = Board.kings[color == Pieces.White ? 0 : 1];
         assert king != null;
         return isSquareAttacked(king.file, king.rank, color);
     }
 
     public static boolean hasLegalMoves(int color) {
-        for (Piece piece : Board.pieceList) {
-            if (piece.isColor(color)) {
-                for (int f = 0; f < Board.files; f++) {
-                    for (int r = 0; r < Board.ranks; r++) {
+        for (Piece piece : Board.pieceList)
+            if (piece.isColor(color))
+                for (int f = 0; f < Board.FILES; f++)
+                    for (int r = 0; r < Board.RANKS; r++)
                         if (piece.isValidMove(f, r)) {
                             Move move = new Move(piece, f, r);
-                            if (Board.isValid(move)) {
+                            if (Board.isValid(move))
                                 return true;
-                            }
                         }
-                    }
-                }
-
-            }
-        }
         return false;
     }
 
     public static boolean isSquareAttacked(int file, int rank, int color) {
         int oppositeColor = color == Pieces.White ? Pieces.Black : Pieces.White;
-        for (Piece piece : Board.pieceList) {
-            if (piece.isColor(oppositeColor) && piece.isValidMove(file, rank) ) {
+        for (Piece piece : Board.pieceList)
+            if (piece.isColor(oppositeColor) && piece.isValidMove(file, rank))
                 return true;
-            }
-        }
         return false;
     }
 
@@ -52,15 +44,13 @@ public class CheckHandler {
 
     private static void movePieceSim(Move move) {
         move.piece.setPosSim(move.targetFile, move.targetRank);
-        if (move.capture != null) {
+        if (move.capture != null)
             Board.pieceList.remove(move.capture);
-        }
     }
 
     private static void undoMove(Piece piece, Piece capturedPiece, int originalFile, int originalRank) {
         piece.setPosSim(originalFile, originalRank);
-        if (capturedPiece != null) {
+        if (capturedPiece != null)
             Board.pieceList.add(capturedPiece);
-        }
     }
 }

@@ -12,17 +12,16 @@ import java.util.Objects;
 public class Piece {
     public int file;
     public int rank;
-
     public int x;
     public int y;
     public int value;
+    Image sprite;
 
     public boolean justMadeDoubleStep = false;
     public boolean hasMoved = false;
 
     public static BufferedImage sheet;
     public static int sheetScale;
-    Image sprite;
     static {
         try {
             sheet = ImageIO.read(Objects.requireNonNull(ClassLoader.getSystemResourceAsStream("pieces.png")));
@@ -37,7 +36,7 @@ public class Piece {
         this.file = file;
         this.rank = rank;
         updatePosition();
-        this.sprite = sheet.getSubimage(((value - 1) & 0b111) * sheetScale, (value >> 4) == 0 ? 0 : sheetScale, sheetScale, sheetScale).getScaledInstance(Board.fieldSize, Board.fieldSize, BufferedImage.SCALE_SMOOTH);
+        this.sprite = sheet.getSubimage(((value - 1) & 0b111) * sheetScale, (value >> 4) == 0 ? 0 : sheetScale, sheetScale, sheetScale).getScaledInstance(Board.FIELD_SIZE, Board.FIELD_SIZE, BufferedImage.SCALE_SMOOTH);
     }
 
     public void paint(Graphics2D view) {
@@ -57,8 +56,8 @@ public class Piece {
     }
 
     public void updatePosition() {
-        this.y = rank * Board.fieldSize;
-        this.x = file * Board.fieldSize;
+        this.y = rank * Board.FIELD_SIZE;
+        this.x = file * Board.FIELD_SIZE;
     }
 
     public boolean isType(int type) {
@@ -74,9 +73,9 @@ public class Piece {
     }
 
     public boolean isColor(Piece piece) {
-        if (piece == null) {
+        if (piece == null)
             return false;
-        }
+
         return (value >> 4) == (piece.value >> 4);
     }
 
@@ -104,22 +103,22 @@ public class Piece {
         if (Math.abs(targetFile - this.file) == 1 && targetRank - this.rank == direction) {
             Piece potentialEnPassantPawn = Board.getPiece(targetFile, this.rank);
             if (potentialEnPassantPawn != null && potentialEnPassantPawn.isType(Pieces.Pawn) &&
-                    potentialEnPassantPawn.justMadeDoubleStep && potentialEnPassantPawn.isColor(Pieces.White) != this.isColor(Pieces.White)) {
+                    potentialEnPassantPawn.justMadeDoubleStep && potentialEnPassantPawn.isColor(Pieces.White) != this.isColor(Pieces.White))
                 return true;
-            }
         }
+
         // single step forward
-        if (fileDifference == 0 && rankDifference == direction) {
+        if (fileDifference == 0 && rankDifference == direction)
             return capture == null;
-        }
+
         // double step forward from initial position
-        if (fileDifference == 0 && rankDifference == 2 * direction && (this.rank == (this.isColor(Pieces.White) ? 6 : 1))) {
+        if (fileDifference == 0 && rankDifference == 2 * direction && (this.rank == (this.isColor(Pieces.White) ? 6 : 1)))
             return Board.getPiece(targetFile, this.rank + direction) == null && capture == null;
-        }
+
         // diagonal capture
-        if (Math.abs(fileDifference) == 1 && rankDifference == direction) {
+        if (Math.abs(fileDifference) == 1 && rankDifference == direction)
             return capture != null && !this.isColor(capture);
-        }
+
         return false;
     }
 
@@ -142,21 +141,22 @@ public class Piece {
             int checkRank = rank + stepRank;
 
             while (checkFile != targetFile || checkRank != targetRank) {
-                if (Board.getPiece(checkFile, checkRank) != null) {
+                if (Board.getPiece(checkFile, checkRank) != null)
                     return false; // block by a piece
-                }
                 checkFile += stepFile;
                 checkRank += stepRank;
             }
+
             return true;
         }
+
         return false;
     }
 
     public boolean isValidKingMove(int targetFile, int targetRank) {
-        if (Math.abs(targetFile - this.file) == 2 && targetRank == this.rank && !this.hasMoved) {
+        if (Math.abs(targetFile - this.file) == 2 && targetRank == this.rank && !this.hasMoved)
             return canCastle(targetFile);
-        }
+
         return Math.abs(targetFile - file) <= 1 && Math.abs(targetRank - rank) <= 1;
     }
 
@@ -164,19 +164,18 @@ public class Piece {
         int direction = (targetFile > this.file) ? 1 : -1;
         int rookFile = (direction == 1) ? 7 : 0;
         Piece rook = Board.getPiece(rookFile, this.rank);
-        if (rook == null || rook.hasMoved) { // rook is present and has not moved
+
+        if (rook == null || rook.hasMoved)// rook is present and has not moved
             return false;
-        }
-        for (int f = this.file + direction; f != targetFile; f += direction) { // check that the path is clear
-            if (Board.getPiece(f, this.rank) != null) {
+
+        for (int f = this.file + direction; f != targetFile; f += direction) // check that the path is clear
+            if (Board.getPiece(f, this.rank) != null)
                 return false;
-            }
-        }
-        for (int f = this.file; f != targetFile + direction; f += direction) { // check that the king is not going through check
-            if (CheckHandler.isSquareAttacked(f, this.rank, this.getColor())) {
+
+        for (int f = this.file; f != targetFile + direction; f += direction) // check that the king is not going through check
+            if (CheckHandler.isSquareAttacked(f, this.rank, this.getColor()))
                 return false;
-            }
-        }
+
         return true;
     }
 
@@ -186,7 +185,7 @@ public class Piece {
             int newPieceType = promotionPanel.getChosenPiece();
             if (newPieceType != Pieces.None) {
                 this.value = newPieceType;
-                this.sprite = Piece.sheet.getSubimage(((newPieceType - 1) & 0b111) * Piece.sheetScale, (newPieceType >> 4) == 0 ? 0 : Piece.sheetScale, Piece.sheetScale, Piece.sheetScale).getScaledInstance(Board.fieldSize, Board.fieldSize, BufferedImage.SCALE_SMOOTH);
+                this.sprite = Piece.sheet.getSubimage(((newPieceType - 1) & 0b111) * Piece.sheetScale, (newPieceType >> 4) == 0 ? 0 : Piece.sheetScale, Piece.sheetScale, Piece.sheetScale).getScaledInstance(Board.FIELD_SIZE, Board.FIELD_SIZE, BufferedImage.SCALE_SMOOTH);
             }
         }
     }

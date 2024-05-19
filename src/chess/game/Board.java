@@ -10,28 +10,30 @@ import java.util.HashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Board extends JPanel {
-    public static final String startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    public static final int fieldSize = 110;
-    public static final int files = 8;
-    public static final int ranks = 8;
+    public static final String START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    public static final int FIELD_SIZE = 110;
+    public static final int FILES = 8;
+    public static final int RANKS = 8;
 
-    static final Color light = new Color(232, 148, 148);
-    static final Color dark = new Color(78, 9, 9);
+    static final Color lightField = new Color(232, 148, 148);
+    static final Color darkField = new Color(78, 9, 9);
     static final Color highlight = new Color(0, 255, 0, 100);
     static final Color capture = new Color(255, 0, 0, 150);
     static final Color check = new Color(29, 38, 248, 150);
+    public static Piece selectedPiece;
 
     static CopyOnWriteArrayList<Piece> pieceList;
-    Input input = new Input(this);
-
-    public Piece selectedPiece;
+    public static Piece[] kings; // white, black
+    Input input;
     public static int colorToMove = Pieces.White;
 
     public Board(String fen) {
-        this.setPreferredSize(new Dimension(ranks * fieldSize, files * fieldSize));
+        input = new Input(this);
+        this.setPreferredSize(new Dimension(RANKS * FIELD_SIZE, FILES * FIELD_SIZE));
         this.addMouseListener(input);
         this.addMouseMotionListener(input);
         pieceList = new CopyOnWriteArrayList<>();
+        kings = new Piece[2];
         loadFromFen(fen);
     }
 
@@ -53,66 +55,37 @@ public class Board extends JPanel {
                 file = 0;
                 rank--;
             } else {
-                if (Character.isDigit(symbol)) {
+                if (Character.isDigit(symbol))
                     file += Character.getNumericValue(symbol);
-                } else {
+                else {
                     int color = (Character.isLowerCase(symbol)) ? Pieces.White : Pieces.Black;
                     int piece = pieceMap.get(Character.toLowerCase(symbol));
-                    pieceList.add(new Piece(piece | color, file, rank));
+                    Piece newPiece = new Piece(piece | color, file, rank);
+                    pieceList.add(newPiece);
+                    if (newPiece.isType(Pieces.King))
+                        kings[color == Pieces.White ? 0 : 1] = newPiece;
                     file++;
                 }
             }
         }
-    }
-
-    public static Piece getPiece(int file, int rank) {
-        for (Piece piece : pieceList) {
-            if (piece.file == file && piece.rank == rank) {
-                return piece;
-            }
-        }
-        return null;
+        colorToMove = fen.split(" ")[1].equals("w") ? Pieces.White : Pieces.Black;
     }
 
     public static void makeMove(Move move, JFrame owner) {
         updateDoubleStepFlag(move);
 
-        if (move.isCastling) {
+        if (move.isCastling)
             handleCastle(move);
-        } else {
+        else
             handleMove(move, owner);
-        }
 
         colorToMove = colorToMove == Pieces.White ? Pieces.Black : Pieces.White;
         checkGameStatus();
     }
 
-    public static void checkGameStatus() {
-        boolean isInCheck = CheckHandler.isKingChecked(colorToMove);
-        boolean hasValidMoves = CheckHandler.hasLegalMoves(colorToMove);
-        if (!hasValidMoves) {
-            if (isInCheck) { // checkmate
-                GameFinishedPanel.displayCheckmate(colorToMove);
-            } else { // stalemate
-                GameFinishedPanel.displayStalemate();
-            }
-        } else if (isInCheck) { // check
-            SoundEffects.playCheck();
-        }
-    }
-
-    public static void updateDoubleStepFlag(Move move) {
-        for (Piece piece : pieceList) {
-            if (piece != move.piece) {
-                piece.justMadeDoubleStep = false;
-            }
-        }
-        move.piece.justMadeDoubleStep = Math.abs(move.targetRank - move.startRank) == 2 && move.piece.isType(Pieces.Pawn);
-    }
-
     public static void handleMove(Move move, JFrame owner) {
         move.piece.setPos(move.targetFile, move.targetRank);
-        SoundEffects.playMove(move.piece.getColor());
+        SoundEffects.playSound(move.piece.getColor() == Pieces.White ? SoundEffects.MOVE1 : SoundEffects.MOVE2);
         capture(move);
         move.piece.checkPromotion(owner);
     }
@@ -121,39 +94,58 @@ public class Board extends JPanel {
         int direction = move.targetFile > move.startFile ? 1 : -1;
         int rookStartFile = (direction == 1) ? 7 : 0;
         int rookEndFile = (direction == 1) ? move.targetFile - 1 : move.targetFile + 1;
-        // king
-        move.piece.setPos(move.targetFile, move.targetRank);
-        // rook
+        move.piece.setPos(move.targetFile, move.targetRank); // king
         Piece rook = getPiece(rookStartFile, move.startRank);
-        if (rook != null) {
-            rook.setPos(rookEndFile, move.startRank);
-        }
-        SoundEffects.playCastle();
+        assert rook != null;
+        rook.setPos(rookEndFile, move.startRank); // rook
+        SoundEffects.playSound(SoundEffects.CASTLE);
     }
 
     public static void capture(Move move) {
         if (move.capture == null && move.piece.isType(Pieces.Pawn) && Math.abs(move.startFile - move.targetFile) == 1) {
             pieceList.remove(getPiece(move.targetFile, move.startRank)); // en passant capture
-            SoundEffects.playCapture();
+            SoundEffects.playSound(SoundEffects.CAPTURE);
         } else if (move.capture != null) {
             pieceList.remove(move.capture);
-            SoundEffects.playCapture();
+            SoundEffects.playSound(SoundEffects.CAPTURE);
         }
+    }
+
+    public static void checkGameStatus() {
+        boolean isInCheck = CheckHandler.isKingChecked(colorToMove);
+        boolean hasValidMoves = CheckHandler.hasLegalMoves(colorToMove);
+        if (!hasValidMoves) {
+            if (isInCheck) // checkmate
+                GameFinishedPanel.displayCheckmate(colorToMove);
+            else // stalemate
+                GameFinishedPanel.displayStalemate();
+        } else if (isInCheck) // check
+            SoundEffects.playSound(SoundEffects.CHECK);
+    }
+
+    public static void updateDoubleStepFlag(Move move) {
+        for (Piece piece : pieceList)
+            if (piece != move.piece)
+                piece.justMadeDoubleStep = false;
+
+        move.piece.justMadeDoubleStep = Math.abs(move.targetRank - move.startRank) == 2 && move.piece.isType(Pieces.Pawn);
     }
 
     public static boolean isValid(Move move) {
-        if (!move.piece.isColor(move.capture) && move.piece.isValidMove(move.targetFile, move.targetRank)) {
+        if (!move.piece.isColor(move.capture) && move.piece.isValidMove(move.targetFile, move.targetRank))
             return CheckHandler.simulateAndCheck(move); // simulate the move and check if the king will be in check
-        }
         return false;
     }
 
-    public static Piece findKing(int color) {
-        for (Piece piece : pieceList) {
-            if (piece.isType(Pieces.King) && piece.isColor(color)) {
+    public static void paintSquare(Graphics2D view, int file, int rank, Color color) {
+        view.setColor(color);
+        view.fillRect(file * FIELD_SIZE, rank * FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
+    }
+
+    public static Piece getPiece(int file, int rank) {
+        for (Piece piece : pieceList)
+            if (piece.file == file && piece.rank == rank)
                 return piece;
-            }
-        }
         return null;
     }
 
@@ -161,39 +153,28 @@ public class Board extends JPanel {
         Graphics2D view = (Graphics2D) graphics;
 
         // board
-        for (int r = 0; r < ranks; r++) {
-            for (int f = 0; f < files; f++) {
-                paintSquare(view, f, r, (f + r) % 2 == 0 ? light : dark);
-            }
-        }
+        for (int r = 0; r < RANKS; r++)
+            for (int f = 0; f < FILES; f++)
+                paintSquare(view, f, r, (f + r) % 2 == 0 ? lightField : darkField);
 
         // highlight
-        if (selectedPiece != null) {
-            for (int r = 0; r < ranks; r++) {
-                for (int f = 0; f < files; f++) {
+        if (selectedPiece != null)
+            for (int r = 0; r < RANKS; r++)
+                for (int f = 0; f < FILES; f++) {
                     Move move = new Move(selectedPiece, f, r);
-                    if (isValid(move)) {
+                    if (isValid(move))
                         paintSquare(view, f, r, move.capture != null ? capture : highlight);
-                    }
                 }
-            }
-        }
 
         // check
         if (CheckHandler.isKingChecked(colorToMove)) {
-            Piece king = findKing(colorToMove);
+            Piece king = Board.kings[colorToMove == Pieces.White ? 0 : 1];
             assert king != null;
             paintSquare(view, king.file, king.rank, check);
         }
 
         // pieces
-        for (Piece piece : pieceList) {
+        for (Piece piece : pieceList)
             piece.paint(view);
-        }
-    }
-
-    public static void paintSquare(Graphics2D view, int file, int rank, Color color) {
-        view.setColor(color);
-        view.fillRect(file * fieldSize, rank * fieldSize, fieldSize, fieldSize);
     }
 }
