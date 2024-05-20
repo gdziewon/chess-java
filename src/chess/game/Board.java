@@ -1,7 +1,9 @@
 package chess.game;
 
 import chess.gui.Input;
-import chess.gui.SoundEffects;
+import static chess.game.Pieces.*;
+import static chess.gui.SoundEffects.*;
+import static chess.game.GameStateHandler.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,17 +16,18 @@ public class Board extends JPanel {
     public static final int FILES = 8;
     public static final int RANKS = 8;
 
+    Input input;
+
     static final Color lightField = new Color(232, 148, 148);
     static final Color darkField = new Color(78, 9, 9);
     static final Color highlight = new Color(0, 255, 0, 100);
     static final Color capture = new Color(255, 0, 0, 150);
     static final Color check = new Color(29, 38, 248, 150);
-    public static Piece selectedPiece;
 
     static CopyOnWriteArrayList<Piece> pieceList;
     public static Piece[] kings; // white, black
-    Input input;
-    public static int colorToMove = Pieces.White;
+    public static Piece selectedPiece;
+    public static int colorToMove = White;
 
     public Board(String fen) {
         input = new Input(this);
@@ -34,17 +37,18 @@ public class Board extends JPanel {
         pieceList = new CopyOnWriteArrayList<>();
         kings = new Piece[2];
         loadFromFen(fen);
-        GameStateHandler.checkGameStatus();
+        init(600, 600, this); // 10 minutes
+        checkGameState();
     }
 
     public static void loadFromFen(String fen) {
         HashMap<Character, Integer> pieceMap = new HashMap<>();
-        pieceMap.put('p', Pieces.Pawn);
-        pieceMap.put('n', Pieces.Knight);
-        pieceMap.put('b', Pieces.Bishop);
-        pieceMap.put('r', Pieces.Rook);
-        pieceMap.put('q', Pieces.Queen);
-        pieceMap.put('k', Pieces.King);
+        pieceMap.put('p', Pawn);
+        pieceMap.put('n', Knight);
+        pieceMap.put('b', Bishop);
+        pieceMap.put('r', Rook);
+        pieceMap.put('q', Queen);
+        pieceMap.put('k', King);
 
         String fenBoard = fen.split(" ")[0];
         int file = 0;
@@ -58,17 +62,17 @@ public class Board extends JPanel {
                 if (Character.isDigit(symbol))
                     file += Character.getNumericValue(symbol);
                 else {
-                    int color = (Character.isLowerCase(symbol)) ? Pieces.White : Pieces.Black;
+                    int color = (Character.isLowerCase(symbol)) ? White : Black;
                     int piece = pieceMap.get(Character.toLowerCase(symbol));
                     Piece newPiece = new Piece(piece | color, file, rank);
                     pieceList.add(newPiece);
-                    if (newPiece.isType(Pieces.King))
-                        kings[color == Pieces.White ? 0 : 1] = newPiece;
+                    if (newPiece.isType(King))
+                        kings[color == White ? 0 : 1] = newPiece;
                     file++;
                 }
             }
         }
-        colorToMove = fen.split(" ")[1].equals("w") ? Pieces.White : Pieces.Black;
+        colorToMove = fen.split(" ")[1].equals("w") ? White : Black;
     }
 
     public static void makeMove(Move move, JFrame owner) {
@@ -77,14 +81,14 @@ public class Board extends JPanel {
         else
             handleMove(move, owner);
 
-        colorToMove = colorToMove == Pieces.White ? Pieces.Black : Pieces.White;
-        GameStateHandler.updateDoubleStepFlag(move);
-        GameStateHandler.checkGameStatus();
+        switchTurns();
+        updateFlags(move);
+        checkGameState();
     }
 
     public static void handleMove(Move move, JFrame owner) {
         move.piece.setPos(move.targetFile, move.targetRank);
-        SoundEffects.playSound(move.piece.getColor() == Pieces.White ? SoundEffects.MOVE1 : SoundEffects.MOVE2);
+        playSound(move.piece.getColor() == White ? MOVE1_SOUND : MOVE2_SOUND);
         capture(move);
         move.piece.checkPromotion(owner);
     }
@@ -93,32 +97,29 @@ public class Board extends JPanel {
         int direction = move.targetFile > move.startFile ? 1 : -1;
         int rookStartFile = (direction == 1) ? 7 : 0;
         int rookEndFile = (direction == 1) ? move.targetFile - 1 : move.targetFile + 1;
-        move.piece.setPos(move.targetFile, move.targetRank); // king
+        // king
+        move.piece.setPos(move.targetFile, move.targetRank);
         Piece rook = getPiece(rookStartFile, move.startRank);
         assert rook != null;
-        rook.setPos(rookEndFile, move.startRank); // rook
-        SoundEffects.playSound(SoundEffects.CASTLE);
+        // rook
+        rook.setPos(rookEndFile, move.startRank);
+        playSound(CASTLE_SOUND);
     }
 
     public static void capture(Move move) {
-        if (move.capture == null && move.piece.isType(Pieces.Pawn) && Math.abs(move.startFile - move.targetFile) == 1) {
+        if (move.capture == null && move.piece.isType(Pawn) && Math.abs(move.startFile - move.targetFile) == 1) {
             pieceList.remove(getPiece(move.targetFile, move.startRank)); // en passant capture
-            SoundEffects.playSound(SoundEffects.CAPTURE);
+            playSound(CAPTURE_SOUND);
         } else if (move.capture != null) {
             pieceList.remove(move.capture);
-            SoundEffects.playSound(SoundEffects.CAPTURE);
+            playSound(CAPTURE_SOUND);
         }
     }
 
     public static boolean isValid(Move move) {
         if (!move.piece.isColor(move.capture) && move.piece.isValidMove(move.targetFile, move.targetRank, move))
-            return GameStateHandler.simulateAndCheck(move); // simulate the move and check if the king will be in check
+            return simulateAndCheck(move); // simulate the move and check if the king will be in check
         return false;
-    }
-
-    public static void paintSquare(Graphics2D view, int file, int rank, Color color) {
-        view.setColor(color);
-        view.fillRect(file * FIELD_SIZE, rank * FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
     }
 
     public static Piece getPiece(int file, int rank) {
@@ -146,8 +147,8 @@ public class Board extends JPanel {
                 }
 
         // check
-        if (GameStateHandler.isKingChecked(colorToMove)) {
-            Piece king = Board.kings[colorToMove == Pieces.White ? 0 : 1];
+        if (isKingChecked(colorToMove)) {
+            Piece king = Board.kings[colorToMove == White ? 0 : 1];
             assert king != null;
             paintSquare(view, king.file, king.rank, check);
         }
@@ -155,5 +156,14 @@ public class Board extends JPanel {
         // pieces
         for (Piece piece : pieceList)
             piece.paint(view);
+
+        // clocks
+        clocks[0].paintComponent(view);
+        clocks[1].paintComponent(view);
+    }
+
+    public static void paintSquare(Graphics2D view, int file, int rank, Color color) {
+        view.setColor(color);
+        view.fillRect(file * FIELD_SIZE, rank * FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
     }
 }

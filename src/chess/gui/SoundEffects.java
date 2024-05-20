@@ -6,27 +6,27 @@ import javax.sound.sampled.Clip;
 import java.util.Objects;
 
 public class SoundEffects {
-    public static final int START = 0;
-    public static final int MOVE1 = 1;
-    public static final int MOVE2 = 2;
-    public static final int CAPTURE = 3;
-    public static final int CASTLE = 4;
-    public static final int CHECK = 5;
-    public static final int CHECKMATE = 6;
-    public static final int STALEMATE = 7;
+    public static final int START_SOUND = 0;
+    public static final int MOVE1_SOUND = 1;
+    public static final int MOVE2_SOUND = 2;
+    public static final int CAPTURE_SOUND = 3;
+    public static final int CASTLE_SOUND = 4;
+    public static final int CHECK_SOUND = 5;
+    public static final int CHECKMATE_SOUND = 6;
+    public static final int STALEMATE_SOUND = 7;
 
     private static final Clip[] sounds;
 
     static {
         sounds = new Clip[8];
-        sounds[START] = loadSound("start");
-        sounds[MOVE1] = loadSound("move1");
-        sounds[MOVE2] = loadSound("move2");
-        sounds[CAPTURE] = loadSound("capture");
-        sounds[CASTLE] = loadSound("castle");
-        sounds[CHECK] = loadSound("check");
-        sounds[CHECKMATE] = loadSound("checkmate");
-        sounds[STALEMATE] = loadSound("stalemate");
+        sounds[START_SOUND] = loadSound("start");
+        sounds[MOVE1_SOUND] = loadSound("move1");
+        sounds[MOVE2_SOUND] = loadSound("move2");
+        sounds[CAPTURE_SOUND] = loadSound("capture");
+        sounds[CASTLE_SOUND] = loadSound("castle");
+        sounds[CHECK_SOUND] = loadSound("check");
+        sounds[CHECKMATE_SOUND] = loadSound("checkmate");
+        sounds[STALEMATE_SOUND] = loadSound("stalemate");
     }
 
 

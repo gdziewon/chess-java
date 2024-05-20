@@ -1,16 +1,11 @@
 package chess.game;
 
 public class Move {
-    int startFile;
-    int startRank;
-    int targetFile;
-    int targetRank;
+    int startFile, startRank, targetFile, targetRank;
 
-    Piece piece;
-    Piece capture;
+    Piece piece, capture;
 
-    boolean isCastling;
-    boolean isEnPassant = false;
+    boolean isCastling, isEnPassant = false;
 
     public Move(Piece piece, int targetFile, int targetRank) {
         this.startFile = piece.file;

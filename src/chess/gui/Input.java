@@ -1,6 +1,7 @@
 package chess.gui;
 
 import chess.game.Board;
+import static chess.game.Board.*;
 import chess.game.Move;
 import chess.game.Piece;
 
@@ -18,32 +19,32 @@ public class Input extends MouseAdapter {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        Piece piece = Board.getPiece(e.getX() / Board.FIELD_SIZE, e.getY() / Board.FIELD_SIZE);
-        if (piece != null && piece.isColor(Board.colorToMove))
-            Board.selectedPiece = piece;
+        Piece piece = getPiece(e.getX() / FIELD_SIZE, e.getY() / FIELD_SIZE);
+        if (piece != null && piece.isColor(colorToMove))
+            selectedPiece = piece;
 
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        if (Board.selectedPiece != null) {
-            Move move = new Move(Board.selectedPiece, e.getX() / Board.FIELD_SIZE, e.getY() / Board.FIELD_SIZE);
+        if (selectedPiece != null) {
+            Move move = new Move(selectedPiece, e.getX() / FIELD_SIZE, e.getY() / FIELD_SIZE);
 
-            if (Board.isValid(move))
-                Board.makeMove(move, (JFrame) SwingUtilities.getWindowAncestor(board));
+            if (isValid(move))
+                makeMove(move, (JFrame) SwingUtilities.getWindowAncestor(board));
             else
-                Board.selectedPiece.updatePosition();
+                selectedPiece.updatePosition();
 
-            Board.selectedPiece = null;
+            selectedPiece = null;
         }
         board.repaint();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        if (Board.selectedPiece != null) {
-            Board.selectedPiece.x = e.getX() - Board.FIELD_SIZE / 2;
-            Board.selectedPiece.y = e.getY() - Board.FIELD_SIZE / 2;
+        if (selectedPiece != null) {
+            selectedPiece.x = e.getX() - FIELD_SIZE / 2;
+            selectedPiece.y = e.getY() - FIELD_SIZE / 2;
             board.repaint();
         }
     }

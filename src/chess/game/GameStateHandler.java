@@ -1,37 +1,57 @@
 package chess.game;
 
-import chess.gui.GameFinishedPanel;
-import chess.gui.SoundEffects;
-
 import java.util.HashMap;
 import java.util.Map;
 
 import static chess.game.Board.*;
+import static chess.game.Pieces.*;
+import static chess.gui.GameFinishedPanel.*;
+import static chess.gui.SoundEffects.*;
 
 public class GameStateHandler {
-    private static final Map<String, Integer> gameStateHistory = new HashMap<>();
+    private static Map<String, Integer> gameStateHistory;
+    private static int movesSinceLastCaptureOrPawnMove;
+    public static ChessClock[] clocks; // white, black
+
+    public static void init(int whiteTime, int blackTime, Board board) {
+        setClocks(whiteTime, blackTime, board);
+        gameStateHistory = new HashMap<>();
+        movesSinceLastCaptureOrPawnMove = 0;
+    }
+
+    private static void setClocks(int whiteTime, int blackTime, Board board) {
+        clocks = new ChessClock[2];
+        clocks[0] = new ChessClock(whiteTime, true, board);
+        clocks[1] = new ChessClock(blackTime, false, board);
+        clocks[colorToMove == White ? 0 : 1].start();
+    }
+
+    public static void switchTurns() {
+        clocks[colorToMove == White ? 0 : 1].stop();
+        colorToMove = colorToMove == White ? Black : White;
+        clocks[colorToMove == White ? 0 : 1].start();
+    }
 
     public static boolean isKingChecked(int color) {
-        Piece king = kings[color == Pieces.White ? 0 : 1];
+        Piece king = kings[color == White ? 0 : 1];
         assert king != null;
         return isSquareAttacked(king.file, king.rank, color);
     }
 
     private static boolean hasLegalMoves(int color) {
-        for (Piece piece : pieceList)
+        for (Piece piece : pieceList) // check if any piece has any valid move
             if (piece.isColor(color))
-                for (int f = 0; f < Board.FILES; f++)
-                    for (int r = 0; r < Board.RANKS; r++)
-                        if (piece.isValidMove(f, r, null)) {
-                            Move move = new Move(piece, f, r);
-                            if (Board.isValid(move))
+                for (int f = 0; f < FILES; f++)
+                    for (int r = 0; r < RANKS; r++)
+                        if (piece.isValidMove(f, r, null))
+                            if (isValid(new Move(piece, f, r)))
                                 return true;
-                        }
+
         return false;
     }
 
     public static boolean isSquareAttacked(int file, int rank, int color) {
-        int oppositeColor = color == Pieces.White ? Pieces.Black : Pieces.White;
+        int oppositeColor = color == White ? Black : White;
         for (Piece piece : pieceList)
             if (piece.isColor(oppositeColor) && piece.isValidMove(file, rank, null))
                 return true;
@@ -40,7 +60,7 @@ public class GameStateHandler {
 
     public static boolean simulateAndCheck(Move move) {
         Piece originalPiece = move.piece;
-        Piece capturedPiece = Board.getPiece(move.targetFile, move.targetRank);
+        Piece capturedPiece = getPiece(move.targetFile, move.targetRank);
         int originalFile = originalPiece.file;
         int originalRank = originalPiece.rank;
 
@@ -64,28 +84,50 @@ public class GameStateHandler {
     }
 
     public static void updateDoubleStepFlag(Move move) {
-        for (Piece piece : pieceList)
+        for (Piece piece : pieceList) // reset all double step flags
             if (piece != move.piece)
                 piece.justMadeDoubleStep = false;
 
-        move.piece.justMadeDoubleStep = Math.abs(move.targetRank - move.startRank) == 2 && move.piece.isType(Pieces.Pawn);
+        // set double step flag for pawn
+        move.piece.justMadeDoubleStep = Math.abs(move.targetRank - move.startRank) == 2 && move.piece.isType(Pawn);
     }
 
-    public static void checkGameStatus() {
-        String gameState = generateGameState();
+    public static void updateMovesSinceLastCaptureOrPawnMove(Move move) {
+        if (move.capture != null || move.piece.isType(Pawn))
+            movesSinceLastCaptureOrPawnMove = 0;
+        else
+            movesSinceLastCaptureOrPawnMove++;
+    }
+
+    public static void updateFlags(Move move) {
+        updateDoubleStepFlag(move);
+        updateMovesSinceLastCaptureOrPawnMove(move);
+    }
+
+    public static void checkGameState() {
+        String gameState = generateGameState(); // generate current game state
         gameStateHistory.put(gameState, gameStateHistory.getOrDefault(gameState, 0) + 1);
-        boolean isInCheck = GameStateHandler.isKingChecked(colorToMove);
-        boolean hasValidMoves = GameStateHandler.hasLegalMoves(colorToMove);
+
+        boolean isInCheck = isKingChecked(colorToMove);
+        boolean hasValidMoves = hasLegalMoves(colorToMove);
+        boolean insufficientMaterial = isInsufficientMaterial();
+        boolean repetition = gameStateHistory.get(gameState) >= 3;
+        boolean fiftyMoveRule = movesSinceLastCaptureOrPawnMove >= 50;
+
         if (!hasValidMoves) {
             if (isInCheck) // checkmate
-                GameFinishedPanel.displayCheckmate(colorToMove);
+                displayCheckmate(colorToMove);
             else // stalemate
-                GameFinishedPanel.displayStalemate();
+                displayDraw(STALEMATE);
         } else if (isInCheck) // check
-            SoundEffects.playSound(SoundEffects.CHECK);
+            playSound(CHECK_SOUND);
 
-        if (isInsufficientMaterial() || gameStateHistory.get(gameState) >= 3) // draw
-            GameFinishedPanel.displayStalemate();
+        if (insufficientMaterial)
+            displayDraw(INSUFFICIENT_MATERIAL);
+        else if (repetition)
+            displayDraw(THREEFOLD_REPETITION);
+        else if (fiftyMoveRule)
+            displayDraw(FIFTY_MOVE_RULE);
     }
 
     private static boolean isInsufficientMaterial() {
@@ -101,18 +143,18 @@ public class GameStateHandler {
         boolean[] bishopOnDarkSquare = new boolean[2];
 
         for (Piece piece : pieceList) {
-            if (piece.isType(Pieces.Pawn) || piece.isType(Pieces.Rook) || piece.isType(Pieces.Queen))
-                return false;
+            if (piece.isType(Pawn) || piece.isType(Rook) || piece.isType(Queen))
+                return false; // pawn, rook, queen - not insufficient material
 
-            if (piece.isType(Pieces.Knight))
-                knightCounts[piece.isColor(Pieces.White) ? 0 : 1]++;
+            if (piece.isType(Knight))
+                knightCounts[piece.isColor(White) ? 0 : 1]++;
 
-            if (piece.isType(Pieces.Bishop)) {
-                bishopCounts[piece.isColor(Pieces.White) ? 0 : 1]++;
+            if (piece.isType(Bishop)) {
+                bishopCounts[piece.isColor(White) ? 0 : 1]++;
                 if (piece.isOnLightSquare())
-                    bishopOnLightSquare[piece.isColor(Pieces.White) ? 0 : 1] = true;
+                    bishopOnLightSquare[piece.isColor(White) ? 0 : 1] = true;
                 else
-                    bishopOnDarkSquare[piece.isColor(Pieces.White) ? 0 : 1] = true;
+                    bishopOnDarkSquare[piece.isColor(White) ? 0 : 1] = true;
             }
         }
 
@@ -123,7 +165,7 @@ public class GameStateHandler {
     }
 
     private static String generateGameState() {
-        StringBuilder gameState = new StringBuilder();
+        StringBuilder gameState = new StringBuilder(); // state of the game represented as a string
         for (Piece piece : pieceList) {
             gameState.append(piece.file);
             gameState.append(piece.rank);

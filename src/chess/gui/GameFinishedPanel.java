@@ -1,11 +1,19 @@
 package chess.gui;
 
-import chess.game.Pieces;
+import static chess.game.Pieces.*;
+import static chess.gui.SoundEffects.*;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class GameFinishedPanel extends JPanel {
+    public static GameFrame gameFrame;
+
+    public static final String INSUFFICIENT_MATERIAL = " Insufficient material!";
+    public static final String THREEFOLD_REPETITION = " Threefold repetition!";
+    public static final String FIFTY_MOVE_RULE = " Fifty-move rule!";
+    public static final String STALEMATE = " Stalemate!";
+
     public GameFinishedPanel(JFrame owner, String result) {
         setLayout(new BorderLayout());
         JLabel resultLabel = new JLabel(result, SwingConstants.CENTER);
@@ -18,6 +26,7 @@ public class GameFinishedPanel extends JPanel {
 
         rematchButton.addActionListener(e -> {
             owner.dispose();
+            gameFrame.dispose();
             SwingUtilities.invokeLater(GameFrame::new); // start a new game
         });
 
@@ -38,12 +47,17 @@ public class GameFinishedPanel extends JPanel {
     }
 
     public static void displayCheckmate(int color) {
-        SoundEffects.playSound(SoundEffects.CHECKMATE);
-        displayEndGame(color == Pieces.White ? "Checkmate! Black wins!" : "Checkmate! White wins!");
+        playSound(CHECKMATE_SOUND);
+        displayEndGame(color == White ? "Checkmate! Black wins!" : "Checkmate! White wins!");
     }
 
-    public static void displayStalemate() {
-        SoundEffects.playSound(SoundEffects.STALEMATE);
-        displayEndGame("Stalemate! It's a draw!");
+    public static void displayTimeOut(int color) {
+        playSound(CHECKMATE_SOUND);
+        displayEndGame(color == White ? "Time out! Black wins!" : "Time out! White wins!");
+    }
+
+    public static void displayDraw(String cause) {
+        playSound(STALEMATE_SOUND);
+        displayEndGame(cause + " It's a draw!");
     }
 }
